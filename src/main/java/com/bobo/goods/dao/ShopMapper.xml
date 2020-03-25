@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bobo.goods.dao.ShopMapper">
+
+	<!-- 查询单个店铺 -->
+	<select id="select" resultMap="shopResultMap">
+		select * from shop where id=#{id}
+
+	</select>
+
+	<!-- 增加店铺 返回自增主键值 -->
+	<insert id="insert" useGeneratedKeys="true" keyProperty="id">
+		insert into shop (name,created,picture) values(#{name},#{created},#{picture})
+	</insert>
+	<!--增加中间表 -->
+	<insert id="insertMiddle">
+		<!-- insert into middle (sid,gid) VALUES (1,2),(2,3),(3,4) -->
+		insert into middle (sid,gid) values
+		<foreach collection="gids" item="gid" separator=",">
+			(#{sid},#{gid})
+		</foreach>
+
+	</insert>
+
+	<select id="selectGoods" resultType="Good">
+
+		select * from goods
+
+	</select>
+
+
+
+	<resultMap type="Shop" id="shopResultMap">
+		<id column="id" property="id" />
+		<result column="name" property="name" />
+		<result column="picture" property="picture" />
+		<!-- 封装多对多 -->
+		<collection property="goods" ofType="good"
+			select="selectsByShopId" column="id">
+		</collection>
+	</resultMap>
+
+
+	<select id="selects" resultMap="shopResultMap">
+		select * from shop s
+
+		<!-- 查询条件 -->
+		<where>
+			<!-- 店面名称 -->
+			<if test="name!=null and name!=''">
+				name like "%"#{name}"%"
+			</if>
+			<if test="gids!=null and  gids.length!=0">
+
+				and id in (select DISTINCT sid from middle where gid in
+				<foreach collection="gids" open="(" item="gid" close=")"
+					separator=",">
+					#{gid}
+				</foreach>
+				)
+
+			</if>
+
+
+		</where>
+
+	</select>
+
+	<select id="selectsByShopId" resultType="Good">
+		select g.id,g.`name`
+		from middle m LEFT JOIN goods g
+		on m.gid =g.id where sid =#{sid}
+	</select>
+
+</mapper>
